@@ -3,6 +3,7 @@ import logging
 import logging.config
 import subprocess
 from subprocess import Popen
+import sys
 import time
 
 from infi.systray import SysTrayIcon
@@ -13,6 +14,7 @@ __version__ = "0.3.0"
 
 logger = logging.getLogger("idasen-tray")
 
+running: bool
 server: Popen
 
 
@@ -47,8 +49,7 @@ def start_server() -> None:
     logger.info("starting idasen controller server")
 
     global server
-    server = Popen(f"idasen-controller --server --config idasen_tray/config.yaml")
-    time.sleep(10)
+    server = Popen(f"idasen-controller --server --config idasen_tray/config.yaml", creationflags=subprocess.CREATE_NO_WINDOW)
 
 
 def trigger_desk(tray: SysTrayIcon, height: int):
@@ -60,11 +61,14 @@ def trigger_desk(tray: SysTrayIcon, height: int):
     Popen(f"idasen-controller --forward --move-to {height}", creationflags=subprocess.CREATE_NO_WINDOW)
 
 
-def cleanup(tray: SysTrayIcon) -> None:
-    logger.debug("cleaning up for exit")
+def quit(tray: SysTrayIcon) -> None:
+    logger.info("quitting")
 
     global server
     server.kill()
+
+    global running
+    running = False
 
 
 if __name__ == "__main__":
@@ -78,7 +82,10 @@ if __name__ == "__main__":
     for preset, height in presets.items():
         menu += ((f"{preset} ({height / 10}cm)", f"resources/{preset}.ico", lambda tray, height=height: trigger_desk(tray, height)), )
 
-    with SysTrayIcon("resources/idasen-tray.ico", "Idasen Tray", menu_options=menu, on_quit=cleanup) as tray:
+    with SysTrayIcon("resources/idasen-tray.ico", "Idasen Tray", menu_options=menu, on_quit=quit) as tray:
         start_server()
+
         logger.debug("waiting for tray exit")
-        pass
+        running = True
+        while running:
+            time.sleep(4)
