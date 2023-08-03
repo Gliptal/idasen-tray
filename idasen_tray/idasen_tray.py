@@ -3,6 +3,7 @@ import logging
 import logging.config
 import subprocess
 from subprocess import Popen
+import time
 
 from infi.systray import SysTrayIcon
 import yaml
@@ -33,7 +34,9 @@ def setup_logging(debug: bool, quiet: bool) -> None:
         logger.warn("missing logging config file")
 
 
-def find_presets() -> dict[str, int]:
+def read_presets() -> dict[str, int]:
+    logger.info("reading configuration file")
+
     with Path("idasen_tray/config.yaml").open() as file:
         config = yaml.safe_load(file)
 
@@ -41,17 +44,25 @@ def find_presets() -> dict[str, int]:
 
 
 def start_server() -> None:
+    logger.info("starting idasen controller server")
+
     global server
-    server = Popen(f"idasen-controller --server --config idasen_tray/config.yaml", creationflags=subprocess.CREATE_NO_WINDOW)
+    server = Popen(f"idasen-controller --server --config idasen_tray/config.yaml")
+    time.sleep(10)
 
 
 def trigger_desk(tray: SysTrayIcon, height: int):
-    logger.info(f"moving desk to {height/10}cm")
+    if height != 0:
+        logger.info(f"moving desk to {height/10}cm")
+    else:
+        logger.info(f"stopping desk")
 
     Popen(f"idasen-controller --forward --move-to {height}", creationflags=subprocess.CREATE_NO_WINDOW)
 
 
 def cleanup(tray: SysTrayIcon) -> None:
+    logger.debug("cleaning up for exit")
+
     global server
     server.kill()
 
@@ -60,7 +71,7 @@ if __name__ == "__main__":
     setup_logging(True, False)
     logger.info(f"starting idasen-tray v{__version__}")
 
-    presets = find_presets()
+    presets = read_presets()
     logger.debug(presets)
 
     menu = (("STOP", f"resources/stop.ico", lambda tray: trigger_desk(tray, 0)), )
@@ -69,3 +80,5 @@ if __name__ == "__main__":
 
     with SysTrayIcon("resources/idasen-tray.ico", "Idasen Tray", menu_options=menu, on_quit=cleanup) as tray:
         start_server()
+        logger.debug("waiting for tray exit")
+        pass

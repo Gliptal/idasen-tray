@@ -15,10 +15,18 @@ handlers :
         formatter : short
         level     : DEBUG
         stream    : ext://sys.stdout
+    file :
+        class       : logging.handlers.RotatingFileHandler
+        formatter   : all
+        level       : DEBUG
+        filename    : logs/log.log
+        maxBytes    : 1048576
+        backupCount : 1
 
 root :
     handlers :
         - console
+        - file
     level : DEBUG
 
 disable_existing_loggers : false
