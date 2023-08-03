@@ -16,6 +16,10 @@ Control your IKEA [Idasen](https://www.ikea.com/us/en/p/idasen-desk-sit-stand-bl
 
     `python -m venv .venv`
 
+- Install the requirements:
+
+    `pip install -r requirements.txt`
+
 ## CONFIGURE
 
 - Pair your PC to your desk via Bluetooth.
